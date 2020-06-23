@@ -635,8 +635,6 @@ namespace Windows.UI.Xaml.Controls
 			{
 				case VirtualKey.Left:
 				case VirtualKey.Right:
-				case VirtualKey.Up:
-				case VirtualKey.Down:
 				case VirtualKey.Home:
 				case VirtualKey.End:
 					args.Handled = true;

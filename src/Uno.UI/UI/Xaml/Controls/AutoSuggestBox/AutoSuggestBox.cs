@@ -268,8 +268,8 @@ namespace Windows.UI.Xaml.Controls
 				this.Log().Debug($"Suggestion item clicked {e.ClickedItem}");
 			}
 
-			SuggestionChosen?.Invoke(this, new AutoSuggestBoxSuggestionChosenEventArgs(e.ClickedItem));
-			IsSuggestionListOpen = false;
+			Text = e.ClickedItem.ToString();
+			SubmitSearch();
 		}
 
 		private void OnQueryButtonClick(object sender, RoutedEventArgs e)
@@ -290,7 +290,7 @@ namespace Windows.UI.Xaml.Controls
 
 		private void OnTextBoxKeyDown(object sender, KeyRoutedEventArgs e)
 		{
-			if(e.Key == Windows.System.VirtualKey.Enter)
+			if (e.Key == Windows.System.VirtualKey.Enter)
 			{
 				if (this.Log().IsEnabled(Microsoft.Extensions.Logging.LogLevel.Debug))
 				{
@@ -298,13 +298,48 @@ namespace Windows.UI.Xaml.Controls
 				}
 
 				SubmitSearch();
+			} else if (e.Key == Windows.System.VirtualKey.Up || e.Key == Windows.System.VirtualKey.Down)
+			{
+				HandleUpDownKeys(e);
 			}
+		}
+
+		private void HandleUpDownKeys(KeyRoutedEventArgs e)
+		{
+			int currentIndex = _suggestionsList.SelectedIndex;
+			int numSuggestions = _suggestionsList.NumberOfItems;
+			int nextIndex = -1;
+
+			if (e.Key == Windows.System.VirtualKey.Up)
+			{
+				// C# modulo isn't actually a modulo it's a remainder, so need to account for negative index
+				nextIndex = ((currentIndex % numSuggestions) + numSuggestions) % numSuggestions - ((currentIndex == -1) ? 0 : 1);
+			}
+			else if (e.Key == Windows.System.VirtualKey.Down)
+			{
+				int indexPlusOne = currentIndex + 1;
+				// The next step after the last index should be -1, not 0.
+				nextIndex = ((indexPlusOne % numSuggestions) + numSuggestions) % numSuggestions - ((indexPlusOne == numSuggestions) ? 1 : 0);
+			}
+
+			_suggestionsList.SelectedIndex = nextIndex;
+
+			ChoseSuggestion();
+
+			e.Handled = true;
+		}
+
+		private void ChoseSuggestion()
+		{
+			Text = _suggestionsList.SelectedItem.ToString();
+			SuggestionChosen?.Invoke(this, new AutoSuggestBoxSuggestionChosenEventArgs(_suggestionsList.SelectedItem));
 		}
 
 		private static void OnTextChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs args)
 		{
 			if(dependencyObject is AutoSuggestBox tb)
 			{
+				// TODO - do not invoke this when selection is chosen, since text is programatically changed.
 				tb.TextChanged?.Invoke(tb, new AutoSuggestBoxTextChangedEventArgs() { Reason = AutoSuggestionBoxTextChangeReason.UserInput });
 			}
 		}
